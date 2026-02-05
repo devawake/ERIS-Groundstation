@@ -1,0 +1,6 @@
+flask
+flask-socketio
+eventlet
+# Hardware dependencies (will fail on Windows, handled in code)
+spidev
+RPi.GPIO

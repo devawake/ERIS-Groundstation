@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>ERIS Ground Station</title>
+
+    <!-- Local Vendor Styles -->
+    <link rel="stylesheet" href="static/vendor/leaflet.css">
+
+    <!-- Main Styles -->
+    <link rel="stylesheet" href="static/style.css">
+</head>
+
+<body>
+
+    <div class="app-container">
+        <!-- Header -->
+        <header class="hud-header">
+            <div class="logo"></div>
+            <div class="header-logo-container">
+                <img src="static/img/utc.webp" alt="UTC" class="header-logo-image">
+                <div class="mission-timer" id="mission-timer">T+ 00:00:00</div>
+                <img src="static/img/eris-white.webp" alt="ERIS Logo" class="header-logo-image">
+            </div>
+            <div class="status-indicators">
+                <div class="status-item"><span class="label">SATS</span> <span class="value" id="sats-val">0</span>
+                </div>
+                <div class="status-item"><span class="label">RSSI</span> <span class="value" id="rssi-val">-</span><span
+                        class="unit">dBm</span></div>
+                <div class="status-item" id="connection-status"><span class="status-dot"></span><span
+                        class="conn-text">OFFLINE</span></div>
+            </div>
+        </header>
+
+        <!-- Main Grid -->
+        <main class="hud-grid">
+
+            <!-- Column 1: Primary Flight Data -->
+            <section class="panel flight-data fade-in">
+                <h2>Flight Data</h2>
+                <div class="data-row large">
+                    <span class="label">ALTITUDE</span>
+                    <span class="value" id="alt-val">0.0</span>
+                    <span class="unit">meters</span>
+                </div>
+                <div class="data-row icon-row">
+                    <div class="sub-data">
+                        <span class="label">MAX ALT</span>
+                        <span class="value" id="max-alt-val">0.0</span>
+                    </div>
+                    <div class="sub-data">
+                        <span class="label">VELOCITY</span>
+                        <span class="value" id="vel-val">0.0</span>
+                    </div>
+                </div>
+
+                <hr class="separator">
+
+                <div class="data-group">
+                    <div class="data-row small">
+                        <span class="label">LATITUDE</span>
+                        <span class="value monospace" id="lat-val">0.0000</span>
+                    </div>
+                    <div class="data-row small">
+                        <span class="label">LONGITUDE</span>
+                        <span class="value monospace" id="lon-val">0.0000</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Column 2: 3D Visualization -->
+            <section class="panel visualizer fade-in">
+                <h2>Orientation</h2>
+                <div id="rocket-3d-model" class="model-container"></div>
+                <div class="imu-data">
+                    <span>AX <b id="ax-val">0.0</b></span>
+                    <span>AY <b id="ay-val">0.0</b></span>
+                    <span>AZ <b id="az-val">0.0</b></span>
+                </div>
+            </section>
+
+            <!-- Column 3: Map -->
+            <section class="panel map-panel fade-in">
+                <h2>Location</h2>
+                <div id="map" class="map-container"></div>
+            </section>
+
+            <!-- Bottom Row: Charts -->
+            <section class="panel charts-panel fade-in">
+                <h2>Telemetry History</h2>
+                <div class="chart-container">
+                    <canvas id="telemetryChart"></canvas>
+                </div>
+            </section>
+
+        </main>
+    </div>
+
+    <!-- Local Vendor Scripts -->
+    <script src="static/vendor/socket.io.min.js"></script>
+    <script src="static/vendor/three.min.js"></script>
+    <script src="static/vendor/OBJLoader.js"></script>
+    <script src="static/vendor/chart.min.js"></script>
+    <script src="static/vendor/leaflet.js"></script>
+
+    <!-- Main Script -->
+    <script src="static/script.js"></script>
+</body>
+
+</html>
