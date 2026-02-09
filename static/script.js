@@ -53,16 +53,25 @@ document.addEventListener('DOMContentLoaded', () => {
         vel: document.getElementById('vel-val'),
         lat: document.getElementById('lat-val'),
         lon: document.getElementById('lon-val'),
-        ax: document.getElementById('ax-val'),
-        ay: document.getElementById('ay-val'),
         az: document.getElementById('az-val'),
         sats: document.getElementById('sats-val'),
         rssi: document.getElementById('rssi-val'),
+        state: document.getElementById('state-val'),
     };
 
-    let maxAltitude = 0.0;
     let lastAlt = 0.0;
     let lastTime = Date.now();
+
+    // Map state characters to readable names
+    const stateNames = {
+        'I': 'IDLE',
+        'A': 'ASCENT',
+        'C': 'COAST',
+        'D': 'DESCENT',
+        'L': 'LANDED',
+        'E': 'ERROR',
+        'U': 'UNKNOWN'
+    };
 
     function updateDashboard(data) {
         // Update simple values
@@ -71,14 +80,14 @@ document.addEventListener('DOMContentLoaded', () => {
         els.rssi.innerText = data.rssi;
         els.lat.innerText = data.lat.toFixed(5);
         els.lon.innerText = data.lon.toFixed(5);
-        els.ax.innerText = data.ax.toFixed(2);
-        els.ay.innerText = data.ay.toFixed(2);
-        els.az.innerText = data.az.toFixed(2);
 
-        // Max Altitude Logic
-        if (data.alt > maxAltitude) {
-            maxAltitude = data.alt;
-            animateValue(els.maxAlt, maxAltitude.toFixed(1));
+        // Update new fields
+        els.state.innerText = stateNames[data.state] || data.state;
+        els.az.innerText = data.az;
+
+        // Use server-provided max altitude
+        if (data.max_alt !== undefined) {
+            animateValue(els.maxAlt, data.max_alt.toFixed(1));
         }
 
         // Velocity Calculation
@@ -94,7 +103,6 @@ document.addEventListener('DOMContentLoaded', () => {
         // Update Modules
         updateMap(data.lat, data.lon);
         updateChart(data.time, data.alt);
-        updateRocketOrientation(data.ax, data.ay, data.az);
     }
 
     function animateValue(element, newValue) {

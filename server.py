@@ -33,79 +33,103 @@ class MockRadio:
     """Generates fake telemetry for testing."""
     def __init__(self):
         self.start_time = time.time()
-        self.lat = 0.0
-        self.lon = 0.0
+        self.lat = 51.5074
+        self.lon = -0.1278
         self.alt = 0.0
+        self.max_alt = 0.0
+        self.state = 'I'  # I=Idle, A=Ascent, L=Landing, etc.
         logger.info("Mock Radio initialized.")
 
     def receive_packet(self):
         time.sleep(1.0) # Simulate delay
         elapsed = time.time() - self.start_time
         
-        # Simulate simple flight path
-        self.alt = min(1000, elapsed * 10) if elapsed < 100 else max(0, 1000 - (elapsed - 100)*10)
-        self.lat = 51.5 + (elapsed * 0.0001)
-        self.lon = -0.1 + (elapsed * 0.0001)
+        # Simulate simple flight path with states
+        if elapsed < 5:
+            self.state = 'I'  # Idle
+            self.alt = 0
+        elif elapsed < 30:
+            self.state = 'A'  # Ascent
+            self.alt = min(1000, (elapsed - 5) * 40)
+        elif elapsed < 35:
+            self.state = 'C'  # Coast
+            self.alt = 1000
+        else:
+            self.state = 'D'  # Descent
+            self.alt = max(0, 1000 - (elapsed - 35) * 30)
+            
+        self.max_alt = max(self.max_alt, self.alt)
+        self.lat = 51.5074 + (elapsed * 0.00001)
+        self.lon = -0.1278 + (elapsed * 0.00001)
+        azimuth = int((elapsed * 10) % 360)  # Simulate rotating azimuth
         
-        # "T:12:01:00,S:5,L:0.00,0.00,A:100.0,Imu:0,0,1"
-        return (f"T:{time.strftime('%H:%M:%S')},S:8,"
-                f"L:{self.lat:.4f},{self.lon:.4f},A:{self.alt:.1f},"
-                f"Imu:0.1,0.2,-9.8").encode('utf-8'), -50
+        # New Protocol: "St:X,T:time,S:sats,L:lat,lon,A:alt,Z:az,Max:maxalt"
+        packet = (f"St:{self.state},T:{int(elapsed)},S:8,"
+                  f"L:{self.lat:.4f},{self.lon:.4f},A:{self.alt:.1f},"
+                  f"Z:{azimuth},Max:{self.max_alt:.1f}")
+        return packet.encode('utf-8'), -50
 
 def parse_packet(payload_bytes, rssi):
     """
-    Parses 'T:...,S:...,L:...,...,A:...,Imu:...,...,...'
+    Parses new protocol: 'St:X,T:time,S:sats,L:lat,lon,A:alt,Z:az,Max:maxalt'
     Returns JSON dict.
     """
     try:
         text = payload_bytes.decode('utf-8')
-        # Simple parsing logic based on User's format
-        # Format: "T:12:01:00,S:5,L:0.00,0.00,A:0,Imu:100,0,0"
+        logger.info(f"Parsing packet: {text}")
         
         data = {'rssi': rssi, 'raw': text}
+        
+        # Split by comma
         parts = text.split(',')
         
-        for part in parts:
-            if part.startswith('T:'):
-                data['time'] = part.split(':')[1]
+        for i, part in enumerate(parts):
+            part = part.strip()
+            
+            if part.startswith('St:'):
+                data['state'] = part.split(':')[1]
+            elif part.startswith('T:'):
+                data['time'] = int(part.split(':')[1])
             elif part.startswith('S:'):
                 data['sats'] = int(part.split(':')[1])
             elif part.startswith('L:'):
-                # L:lat,lon is a bit tricky if split by comma. 
-                # But based on user string "L:{d['lat']:.4f},{d['lon']:.4f}"
-                # The split(',') earlier means we might have ['L:0.00', '0.00']
-                pass # Handled below by iterating index safely? 
-                
-        # Robust parsing:
-        # Re-split carefully or logic based on known positions
-        # Let's assume the format is somewhat fixed but comma delimited
-        # User format: T:..,S:..,L:lat,lon,A:alt,Imu:ax,ay,az
+                # L:lat followed by next part being lon
+                data['lat'] = float(part.split(':')[1])
+                if i + 1 < len(parts):
+                    data['lon'] = float(parts[i + 1])
+            elif part.startswith('A:'):
+                data['alt'] = float(part.split(':')[1])
+            elif part.startswith('Z:'):
+                data['az'] = int(part.split(':')[1])
+            elif part.startswith('Max:'):
+                data['max_alt'] = float(part.split(':')[1])
         
-        # Let's clean parse by values
-        vals = text.split(',')
-        if len(vals) >= 8:
-             # vals[0] -> T:12:01:00
-             data['time'] = vals[0].split(':')[1]
-             # vals[1] -> S:5
-             data['sats'] = int(vals[1].split(':')[1])
-             # vals[2] -> L:51.5000
-             data['lat'] = float(vals[2].split(':')[1])
-             # vals[3] -> -0.1000 (just number)
-             data['lon'] = float(vals[3])
-             # vals[4] -> A:100.0
-             data['alt'] = float(vals[4].split(':')[1])
-             # vals[5] -> Imu:0.1
-             data['ax'] = float(vals[5].split(':')[1])
-             # vals[6] -> 0.2
-             data['ay'] = float(vals[6])
-             # vals[7] -> -9.8
-             data['az'] = float(vals[7])
-             
+        # Set defaults for any missing fields
+        data.setdefault('state', 'U')  # Unknown
+        data.setdefault('time', 0)
+        data.setdefault('sats', 0)
+        data.setdefault('lat', 0.0)
+        data.setdefault('lon', 0.0)
+        data.setdefault('alt', 0.0)
+        data.setdefault('az', 0)
+        data.setdefault('max_alt', 0.0)
+        
         return data
 
     except Exception as e:
         logger.error(f"Parse error: {e}")
-        return {'error': str(e), 'raw': payload_bytes.decode('utf-8', errors='ignore')}
+        return {
+            'error': str(e),
+            'raw': payload_bytes.decode('utf-8', errors='ignore'),
+            'state': 'E',
+            'time': 0,
+            'sats': 0,
+            'lat': 0.0,
+            'lon': 0.0,
+            'alt': 0.0,
+            'az': 0,
+            'max_alt': 0.0
+        }
 
 def background_thread():
     """Reads from radio and emits to socketio."""
