@@ -127,17 +127,17 @@ class RFM69:
             # Packet mode, FSK, no shaping
             (REG_DATAMODUL, 0x00),
             
-            # Bit rate: 4.8 kbps
-            (REG_BITRATEMSB, 0x1A),
-            (REG_BITRATELSB, 0x0B),
+            # Bit rate: 19.2 kbps (must match transmitter)
+            (REG_BITRATEMSB, 0x06),
+            (REG_BITRATELSB, 0x83),
             
-            # Frequency deviation: 5 kHz
-            (REG_FDEVMSB, 0x00),
-            (REG_FDEVLSB, 0x52),
+            # Frequency deviation: 25 kHz (must match transmitter)
+            (REG_FDEVMSB, 0x01),
+            (REG_FDEVLSB, 0x9A),
             
-            # RX bandwidth
-            (REG_RXBW, 0x55),
-            (REG_AFCBW, 0x8B),
+            # RX bandwidth: 83.3kHz (must match transmitter)
+            (REG_RXBW, 0x42),
+            (REG_AFCBW, 0x42),
             
             # Preamble length: 4 bytes
             (0x2C, 0x00),

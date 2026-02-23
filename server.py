@@ -89,20 +89,44 @@ def parse_packet(payload_bytes, rssi):
             if part.startswith('St:'):
                 data['state'] = part.split(':')[1]
             elif part.startswith('T:'):
-                data['time'] = int(part.split(':')[1])
+                try:
+                    val = part.split(':')[1]
+                    data['time'] = int(val) if val and val != 'None' else 0
+                except (ValueError, TypeError):
+                    data['time'] = 0
             elif part.startswith('S:'):
-                data['sats'] = int(part.split(':')[1])
+                try:
+                    val = part.split(':')[1]
+                    data['sats'] = int(val) if val and val != 'None' else 0
+                except (ValueError, TypeError):
+                    data['sats'] = 0
             elif part.startswith('L:'):
                 # L:lat followed by next part being lon
-                data['lat'] = float(part.split(':')[1])
+                try:
+                    data['lat'] = float(part.split(':')[1])
+                except (ValueError, TypeError):
+                    data['lat'] = 0.0
                 if i + 1 < len(parts):
-                    data['lon'] = float(parts[i + 1])
+                    try:
+                        data['lon'] = float(parts[i + 1])
+                    except (ValueError, TypeError):
+                        data['lon'] = 0.0
             elif part.startswith('A:'):
-                data['alt'] = float(part.split(':')[1])
+                try:
+                    data['alt'] = float(part.split(':')[1])
+                except (ValueError, TypeError):
+                    data['alt'] = 0.0
             elif part.startswith('Z:'):
-                data['az'] = int(part.split(':')[1])
+                try:
+                    val = part.split(':')[1]
+                    data['az'] = int(val) if val and val != 'None' else 0
+                except (ValueError, TypeError):
+                    data['az'] = 0
             elif part.startswith('Max:'):
-                data['max_alt'] = float(part.split(':')[1])
+                try:
+                    data['max_alt'] = float(part.split(':')[1])
+                except (ValueError, TypeError):
+                    data['max_alt'] = 0.0
         
         # Set defaults for any missing fields
         data.setdefault('state', 'U')  # Unknown
