@@ -6,7 +6,7 @@ USER_NAME=$(whoami)
 
 echo "Installing necessary packages for Kiosk mode (Cage and Chromium)..."
 sudo apt-get update
-sudo apt-get install -y cage chromium-browser git systemd
+sudo apt-get install -y cage chromium git systemd
 
 echo "Generating SystemD service file for autostart..."
 cat <<EOF | sudo tee /etc/systemd/system/eris-kiosk.service
