@@ -28,7 +28,7 @@ sleep 5
 echo "Starting Chromium Browser in Kiosk Mode on HDMI screen..."
 # Use cage, a lightweight Wayland compositor, to launch Chromium on the Pi without a desktop
 # It outputs directly to the HDMI screen
-cage -d chromium --kiosk --noerrdialogs --disable-infobars --no-first-run --ozone-platform-hint=auto --enable-features=OverlayScrollbar http://localhost:5000 &
+cage -d -- chromium --kiosk --noerrdialogs --disable-infobars --no-first-run --ozone-platform-hint=auto --enable-features=OverlayScrollbar http://localhost:5000 &
 BROWSER_PID=$!
 
 # Wait for the server process forever
