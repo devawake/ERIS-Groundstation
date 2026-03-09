@@ -18,7 +18,8 @@ fi
 
 echo "Starting ERIS Ground Station Server..."
 source venv/bin/activate
-python3 server.py &
+# Using direct path to the venv python executable is safest for background services
+venv/bin/python3 server.py &
 SERVER_PID=$!
 
 echo "Waiting 5 seconds for server to start..."
