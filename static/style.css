@@ -667,3 +667,53 @@ body::before {
 ::-webkit-scrollbar-thumb:hover {
     background: var(--accent-cyan);
 }
+
+/* ================================
+   FLIGHT STATE BADGE COLOURS
+   Applied dynamically by script.js
+   ================================ */
+#state-val {
+    font-family: var(--font-mono);
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    transition: color 0.3s, text-shadow 0.3s;
+}
+
+#state-val.state-idle {
+    color: var(--text-muted);
+}
+
+#state-val.state-armed {
+    color: var(--accent-orange);
+    text-shadow: 0 0 12px rgba(255, 140, 0, 0.7);
+    animation: pulse-armed 1s ease-in-out infinite;
+}
+
+@keyframes pulse-armed {
+    0%, 100% { opacity: 1; }
+    50%       { opacity: 0.65; }
+}
+
+#state-val.state-ascent {
+    color: var(--accent-cyan);
+    text-shadow: 0 0 16px rgba(0, 229, 255, 0.8);
+}
+
+#state-val.state-descent {
+    color: var(--accent-blue);
+    text-shadow: 0 0 12px rgba(77, 159, 255, 0.7);
+}
+
+#state-val.state-landed {
+    color: var(--accent-green);
+    text-shadow: 0 0 12px rgba(34, 255, 136, 0.6);
+}
+
+#state-val.state-unknown,
+#state-val.state-error {
+    color: var(--accent-red);
+    text-shadow: 0 0 10px rgba(255, 59, 92, 0.6);
+}

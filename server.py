@@ -2,7 +2,6 @@
 import time
 import threading
 import json
-import random
 import logging
 from flask import Flask, render_template, send_from_directory
 from flask_socketio import SocketIO, emit
@@ -20,58 +19,17 @@ radio_thread = None
 thread_lock = threading.Lock()
 stop_thread = False
 
-# Try to import Radio
+# Import Radio driver
 try:
     from rfm69 import RFM69
-    HARDWARE_AVAILABLE = True
 except (ImportError, RuntimeError) as e:
-    logger.warning(f"Radio hardware not available: {e}. Starting in MOCK MODE.")
-    HARDWARE_AVAILABLE = False
+    logger.error(f"Radio driver import failed: {e}")
     RFM69 = None
-
-class MockRadio:
-    """Generates fake telemetry for testing."""
-    def __init__(self):
-        self.start_time = time.time()
-        self.lat = 51.5074
-        self.lon = -0.1278
-        self.alt = 0.0
-        self.max_alt = 0.0
-        self.state = 'I'  # I=Idle, A=Ascent, L=Landing, etc.
-        logger.info("Mock Radio initialized.")
-
-    def receive_packet(self):
-        time.sleep(1.0) # Simulate delay
-        elapsed = time.time() - self.start_time
-        
-        # Simulate simple flight path with states
-        if elapsed < 5:
-            self.state = 'I'  # Idle
-            self.alt = 0
-        elif elapsed < 30:
-            self.state = 'A'  # Ascent
-            self.alt = min(1000, (elapsed - 5) * 40)
-        elif elapsed < 35:
-            self.state = 'C'  # Coast
-            self.alt = 1000
-        else:
-            self.state = 'D'  # Descent
-            self.alt = max(0, 1000 - (elapsed - 35) * 30)
-            
-        self.max_alt = max(self.max_alt, self.alt)
-        self.lat = 51.5074 + (elapsed * 0.00001)
-        self.lon = -0.1278 + (elapsed * 0.00001)
-        azimuth = int((elapsed * 10) % 360)  # Simulate rotating azimuth
-        
-        # New Protocol: "St:X,T:time,S:sats,L:lat,lon,A:alt,Z:az,Max:maxalt"
-        packet = (f"St:{self.state},T:{int(elapsed)},S:8,"
-                  f"L:{self.lat:.4f},{self.lon:.4f},A:{self.alt:.1f},"
-                  f"Z:{azimuth},Max:{self.max_alt:.1f}")
-        return packet.encode('utf-8'), -50
 
 def parse_packet(payload_bytes, rssi):
     """
-    Parses new protocol: 'St:X,T:time,S:sats,L:lat,lon,A:alt,Z:az,Max:maxalt'
+    Parses protocol: 'St:STATE,T:time,S:sats,L:lat,lon,A:alt,Z:az,Max:maxalt'
+    STATE is a full word: IDLE, ARMED, ASCENT, DESCENT, LANDED
     Returns JSON dict.
     """
     try:
@@ -129,7 +87,7 @@ def parse_packet(payload_bytes, rssi):
                     data['max_alt'] = 0.0
         
         # Set defaults for any missing fields
-        data.setdefault('state', 'U')  # Unknown
+        data.setdefault('state', 'UNKNOWN')
         data.setdefault('time', 0)
         data.setdefault('sats', 0)
         data.setdefault('lat', 0.0)
@@ -145,7 +103,7 @@ def parse_packet(payload_bytes, rssi):
         return {
             'error': str(e),
             'raw': payload_bytes.decode('utf-8', errors='ignore'),
-            'state': 'E',
+            'state': 'ERROR',
             'time': 0,
             'sats': 0,
             'lat': 0.0,
@@ -156,19 +114,22 @@ def parse_packet(payload_bytes, rssi):
         }
 
 def background_thread():
-    """Reads from radio and emits to socketio."""
+    """Reads from radio and emits telemetry to connected clients."""
     global stop_thread
-    
-    if HARDWARE_AVAILABLE:
-        try:
-            radio = RFM69()
-            logger.info("Real Radio Driver Loaded")
-        except Exception as e:
-            logger.error(f"Failed to load radio, falling back to mock: {e}")
-            radio = MockRadio()
-    else:
-        radio = MockRadio()
-        logger.info("Mock Radio Driver Loaded")
+
+    if RFM69 is None:
+        logger.error("Radio driver unavailable — background thread exiting. Check rfm69.py and hardware.")
+        socketio.emit('log', {'msg': 'ERROR: Radio driver unavailable. No telemetry.'})
+        return
+
+    try:
+        radio = RFM69()
+        logger.info("Radio driver loaded OK")
+        socketio.emit('log', {'msg': 'Radio initialised OK'})
+    except Exception as e:
+        logger.error(f"Radio init failed: {e}")
+        socketio.emit('log', {'msg': f'ERROR: Radio init failed — {e}'})
+        return
 
     while not stop_thread:
         packet_data = radio.receive_packet()
@@ -178,13 +139,10 @@ def background_thread():
             logger.info(f"Emitting: {telemetry}")
             socketio.emit('telemetry', telemetry)
             socketio.emit('log', {'msg': f"RSSI: {rssi}dBm | {telemetry.get('raw','').strip()}"})
-        
-        # Small sleep to prevent CPU hogging in loop if receive_packet returns None immediately
-        # The real driver has some sleeps, mock has sleeps.
-        socketio.sleep(0.01) 
 
-    if hasattr(radio, 'close'):
-        radio.close()
+        socketio.sleep(0.01)
+
+    radio.close()
 
 @app.route('/')
 def index():

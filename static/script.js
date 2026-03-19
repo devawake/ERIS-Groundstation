@@ -62,15 +62,15 @@ document.addEventListener('DOMContentLoaded', () => {
     let lastAlt = 0.0;
     let lastTime = Date.now();
 
-    // Map state characters to readable names
-    const stateNames = {
-        'I': 'IDLE',
-        'A': 'ASCENT',
-        'C': 'COAST',
-        'D': 'DESCENT',
-        'L': 'LANDED',
-        'E': 'ERROR',
-        'U': 'UNKNOWN'
+    // State CSS classes for colour coding (applied to state element)
+    const stateClasses = {
+        'IDLE':    'state-idle',
+        'ARMED':   'state-armed',
+        'ASCENT':  'state-ascent',
+        'DESCENT': 'state-descent',
+        'LANDED':  'state-landed',
+        'UNKNOWN': 'state-unknown',
+        'ERROR':   'state-error',
     };
 
     function updateDashboard(data) {
@@ -81,8 +81,15 @@ document.addEventListener('DOMContentLoaded', () => {
         els.lat.innerText = data.lat.toFixed(5);
         els.lon.innerText = data.lon.toFixed(5);
 
-        // Update new fields
-        els.state.innerText = stateNames[data.state] || data.state;
+        // State — avionics now sends full name (IDLE/ARMED/ASCENT/DESCENT/LANDED)
+        const stateStr = data.state || 'UNKNOWN';
+        els.state.innerText = stateStr;
+
+        // Apply colour class — remove all previous state classes first
+        Object.values(stateClasses).forEach(c => els.state.classList.remove(c));
+        const cls = stateClasses[stateStr] || 'state-unknown';
+        els.state.classList.add(cls);
+
         els.az.innerText = data.az;
 
         // Use server-provided max altitude
