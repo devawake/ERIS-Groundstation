@@ -25,6 +25,16 @@ SERVER_PID=$!
 echo "Waiting 5 seconds for server to start..."
 sleep 5
 
+echo "Setting up Wayland environment..."
+if [ -z "$XDG_RUNTIME_DIR" ]; then
+    export XDG_RUNTIME_DIR=/run/user/$(id -u)
+    if [ ! -d "$XDG_RUNTIME_DIR" ]; then
+        export XDG_RUNTIME_DIR=/tmp/$(id -u)-wayland
+        mkdir -p "$XDG_RUNTIME_DIR"
+        chmod 0700 "$XDG_RUNTIME_DIR"
+    fi
+fi
+
 echo "Starting Chromium Browser in Kiosk Mode on HDMI screen..."
 # Use cage, a lightweight Wayland compositor, to launch Chromium on the Pi without a desktop
 # It outputs directly to the HDMI screen
