@@ -22,6 +22,11 @@ WorkingDirectory=$CURRENT_DIR
 ExecStart=$CURRENT_DIR/autostart.sh
 Restart=on-failure
 RestartSec=5
+StandardInput=tty
+TTYPath=/dev/tty7
+TTYReset=yes
+TTYVHangup=yes
+PAMName=login
 StandardOutput=journal
 StandardError=journal
 # Supplementary groups for KMS drawing directly to HDMI
