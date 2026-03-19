@@ -2,7 +2,7 @@
 # Move into the correct directory relative to the script
 cd "$(dirname "$0")"
 CURRENT_DIR=$(pwd)
-USER_NAME=$(whoami)
+USER_NAME=${SUDO_USER:-$(whoami)}
 
 echo "Installing necessary packages for Kiosk mode (Cage and Chromium)..."
 sudo apt-get update
@@ -19,6 +19,7 @@ Wants=network-online.target
 Type=simple
 User=$USER_NAME
 WorkingDirectory=$CURRENT_DIR
+ExecStartPre=+/usr/bin/chvt 7
 ExecStart=$CURRENT_DIR/autostart.sh
 Restart=on-failure
 RestartSec=5
